@@ -2089,10 +2089,11 @@ NTSTATUS TimedScanTrack (PEXTRA_DEVICE_EXTENSION edx, PIRP Irp)
 				// Find the sector in the list we previously scanned, as sectors close to the index
 				// hole aren't always visible on the 2nd pass!!
 				for (u = 0 ; po->Header[u].sector != edx->FifoOut[5] && u < Count ; u++) ;
-				if (u == Count) u = 0;	// Safe fall back on 1st sector
-
-				edx->SpinTime = ulDiff-po->Header[u].reltime;
-				KdPrint(("### Track loop found @%u, new SpinTime = %luus\n", u, edx->SpinTime));
+				if (u != Count) // Else do not adjust SpinTime based on nothing.
+				{
+					edx->SpinTime = ulDiff - po->Header[u].reltime;
+					KdPrint(("### Track loop found @%u, new SpinTime = %luus\n", u, edx->SpinTime));
+				}
 				break;
 			}
 		}
