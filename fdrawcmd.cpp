@@ -3102,17 +3102,7 @@ VOID ThreadProc (PVOID StartContext)
 						status = STATUS_BUFFER_TOO_SMALL;
 					else
 					{
-						PFD_SCAN_RESULT po = (PFD_SCAN_RESULT)Irp->AssociatedIrp.SystemBuffer;
-						po->count = pd->count;
-
-						for (UCHAR i = 0 ; i < pd->count ; i++)
-						{
-							po->Header[i].cyl = pd->Header[i].cyl;
-							po->Header[i].head = pd->Header[i].head;
-							po->Header[i].sector = pd->Header[i].sector;
-							po->Header[i].size = pd->Header[i].size;
-						}
-
+						RtlCopyMemory(Irp->AssociatedIrp.SystemBuffer, edx->IoBuffer, DataSize);
 						Irp->IoStatus.Information = DataSize;
 					}
 				}
