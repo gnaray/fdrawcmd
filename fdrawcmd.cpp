@@ -524,7 +524,7 @@ NTSTATUS AddDevice (IN PDRIVER_OBJECT DriverObject, IN PDEVICE_OBJECT pdo)
 
 	// From this point forward, any error will have side effects that need to be cleaned up
 
-	do
+	for (;;)
 	{
 		IoInitializeRemoveLock(&pdx->RemoveLock, 0, 0, 0);
 		pdx->DeviceObject = fido;
@@ -614,8 +614,8 @@ NTSTATUS AddDevice (IN PDRIVER_OBJECT DriverObject, IN PDEVICE_OBJECT pdo)
 		}
 
 		edo->Flags &= ~DO_DEVICE_INITIALIZING;
+		break;
 	}
-	while (FALSE);
 
 	if (!NT_SUCCESS(status))
 	{
@@ -1702,7 +1702,7 @@ NTSTATUS SendRawCommand (PUCHAR pb_, ULONG ul_)
 
 	ULONG u = 0;
 
-	while (1)
+	for (;;)
 	{
 		UCHAR bStat = READ_PORT_UCHAR(FDC_MSR_PORT);
 
@@ -1749,7 +1749,7 @@ NTSTATUS GetRawResult (PUCHAR pb_, ULONG ul_)
 
 	ULONG u = 0;
 
-	while (1)
+	for (;;)
 	{
 		UCHAR bStat = READ_PORT_UCHAR(FDC_MSR_PORT);
 
