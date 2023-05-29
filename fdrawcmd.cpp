@@ -2120,7 +2120,7 @@ NTSTATUS TimedScanTrack (PEXTRA_DEVICE_EXTENSION edx, PIRP Irp)
 	// Normalise the offsets of wrapped sectors
 	for (UCHAR k = 0 ; k < Count ; k++)
 		if (po->Header[k].reltime >= edx->SpinTime)
-			po->Header[k].reltime -= edx->SpinTime;
+			po->Header[k].reltime %= edx->SpinTime;
 
 	for (UCHAR i = 0, b ; i < Count ; i++)
 	{
