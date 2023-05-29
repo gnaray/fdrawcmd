@@ -93,6 +93,8 @@ PUCHAR FDC_DSR_PORT  = (PUCHAR)0x03f7;	// Data Rate Select Register
 #define STREG3_DRIVE_FAULT				   0x80
 
 constexpr int IO_BUFFER_SIZE = 0x8000;	// 32K
+int KdCounter = 0;
+
 extern "C"
 {
 // This header is part of an old Windows DDK and contains the structures and
@@ -1922,7 +1924,7 @@ NTSTATUS WaitIndex (PEXTRA_DEVICE_EXTENSION edx, bool CalcSpinTime=false, int Re
 	static UCHAR bSector = 0xef;
 	NTSTATUS status = STATUS_SUCCESS;
 
-	KdPrint(("WaitIndex(): CalcSpinTime=%hhu, Revolutions=%d\n", CalcSpinTime, Revolutions));
+	KdPrint(("#%d: WaitIndex(): CalcSpinTime=%hhu, Revolutions=%d\n", KdCounter++, CalcSpinTime, Revolutions));
 
 	LARGE_INTEGER iTime0;
 	for ( ; NT_SUCCESS(status) ; bSector -= 19)
@@ -1972,7 +1974,7 @@ NTSTATUS WaitIndex (PEXTRA_DEVICE_EXTENSION edx, bool CalcSpinTime=false, int Re
 			if (Revs > 1)
 				TimeSum /= Revs;
 			edx->SpinTime = (ULONG)TimeSum;
-			KdPrint(("### Disk spin time = %luus, Revs=%d\n", edx->SpinTime, Revs));
+			KdPrint(("#%d: ### Disk spin time = %luus, Revs=%d\n", KdCounter++, edx->SpinTime, Revs));
 		}
 	}
 
