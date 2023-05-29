@@ -1901,7 +1901,15 @@ NTSTATUS FormatAndWrite (PEXTRA_DEVICE_EXTENSION edx, PIRP Irp, ULONG DataSize)
 	return status;
 }
 
-NTSTATUS WaitIndex (PEXTRA_DEVICE_EXTENSION edx, bool CalcSpinTime=false)
+/*
+ * The Revolutions must be <= 12884 to avoid overflow because
+ * Revolutions = long_max / SpinTime which is approximately =
+ * 2147483647 / (60 / 360 * 1e6) [at 360 rpm] = 12884.9.
+ * Revolutions amount of measurement takes 60 / 300 * (Revolutions + 1) seconds [at 300 rpm].
+ * Measuring Revolutions > 1 amount is rather for experiencing because SpinTime
+ * is used in (Multi) Timed Scan where it is adjusted further.
+ */
+NTSTATUS WaitIndex (PEXTRA_DEVICE_EXTENSION edx, bool CalcSpinTime=false, int Revolutions=1)
 {
 	// Using READ_TRACK can also give the start of track position, by over-reading until End of Cylinder is returned.
 	// It gives a tighter index sync than reading an error sector, but relies on the command not failing earlier due
@@ -1914,11 +1922,13 @@ NTSTATUS WaitIndex (PEXTRA_DEVICE_EXTENSION edx, bool CalcSpinTime=false)
 	static UCHAR bSector = 0xef;
 	NTSTATUS status = STATUS_SUCCESS;
 
-	KdPrint(("WaitIndex()\n"));
+	KdPrint(("WaitIndex(): CalcSpinTime=%hhu, Revolutions=%d\n", CalcSpinTime, Revolutions));
 
+	LARGE_INTEGER iTime0;
 	for ( ; NT_SUCCESS(status) ; bSector -= 19)
 	{
-		status = CommandReadWrite(edx, edx->IoBufferMdl, SectorSize(1), COMMND_READ_DATA, COMMND_OPTION_MFM, 0, bSector, bSector^0x55, bSector^0xaa, 1, bSector, 1, 0xff);
+		status = CommandReadWrite(edx, edx->IoBufferMdl, SectorSize(1), COMMND_READ_DATA, COMMND_OPTION_MFM, 0, bSector, bSector ^ 0x55, bSector ^ 0xaa, 1, bSector, 1, 0xff);
+		iTime0 = KeQueryPerformanceCounter(NULL);
 
 		// Stop once we find a non-existent sector, or if the track is blank
 		if (status == STATUS_NONEXISTENT_SECTOR || status == STATUS_FLOPPY_ID_MARK_NOT_FOUND)
@@ -1934,19 +1944,36 @@ NTSTATUS WaitIndex (PEXTRA_DEVICE_EXTENSION edx, bool CalcSpinTime=false)
 
 	if (NT_SUCCESS(status) && CalcSpinTime)
 	{
-		LARGE_INTEGER iFreq, iTime0, iTime1;
-		iTime0 = KeQueryPerformanceCounter(NULL);
-		status = CommandReadWrite(edx, edx->IoBufferMdl, SectorSize(1), COMMND_READ_DATA, COMMND_OPTION_MFM, 0, bSector, bSector^0x55, bSector^0xaa, 1, bSector, 1, 0xff);
-		iTime1 = KeQueryPerformanceCounter(&iFreq);
+		LARGE_INTEGER iFreq, iTime1;
+		long TimePrevious = 0;
+		long TimeSum = 0;
+		int Revs;
+		for (Revs = 0; Revs < Revolutions; Revs++)
+		{
+			status = CommandReadWrite(edx, edx->IoBufferMdl, SectorSize(1), COMMND_READ_DATA, COMMND_OPTION_MFM, 0, bSector, bSector ^ 0x55, bSector ^ 0xaa, 1, bSector, 1, 0xff);
+			iTime1 = KeQueryPerformanceCounter(&iFreq);
 
-		// Ensure the second read failed with an expected error, before calculating the speed
-		// This avoids a bogus time when the second read timed out, or failed with another error
-		if (status == STATUS_NONEXISTENT_SECTOR || status == STATUS_FLOPPY_ID_MARK_NOT_FOUND)
+			// Ensure the second read failed with an expected error, before calculating the speed
+			// This avoids a bogus time when the second read timed out, or failed with another error
+			if (status == STATUS_NONEXISTENT_SECTOR || status == STATUS_FLOPPY_ID_MARK_NOT_FOUND)
+			{
+				status = STATUS_SUCCESS;
+				const long TimeCurrent = (long)((iTime1.QuadPart - iTime0.QuadPart) * 500000i64 / iFreq.QuadPart);	// halved to give 1 revolution
+				const long TimeThisRev = TimeCurrent - TimePrevious;
+				TimePrevious = TimeCurrent;
+				TimeSum += TimeThisRev;
+			}
+			else
+				break;
+		}
+		if (Revs > 0)
 		{
 			status = STATUS_SUCCESS;
-			edx->SpinTime = (ULONG)((iTime1.QuadPart - iTime0.QuadPart) * 500000i64 / iFreq.QuadPart);	// halved to give 1 revolution
-			KdPrint(("### Disk spin time = %luus\n", edx->SpinTime));
-  		}
+			if (Revs > 1)
+				TimeSum /= Revs;
+			edx->SpinTime = (ULONG)TimeSum;
+			KdPrint(("### Disk spin time = %luus, Revs=%d\n", edx->SpinTime, Revs));
+		}
 	}
 
 	return status;
