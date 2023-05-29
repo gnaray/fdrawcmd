@@ -1854,7 +1854,7 @@ NTSTATUS FormatTrack (PEXTRA_DEVICE_EXTENSION edx, PIRP Irp)
 	if (Size > edx->IoBufferSize)
 		return STATUS_INSUFFICIENT_RESOURCES;
 
-	RtlCopyMemory(edx->IoBuffer, pp->Header, Size);
+	RtlCopyMemory(edx->IoBuffer, pp->HeaderArray(), Size);
 
 #if DBG
 	KdPrint(("Formatting %u sectors, size=%u, gap=%u, fill=%u\n", pp->sectors, pp->size, pp->gap, pp->fill));
@@ -1884,7 +1884,7 @@ NTSTATUS FormatAndWrite (PEXTRA_DEVICE_EXTENSION edx, PIRP Irp, ULONG DataSize)
 	if (Size > edx->IoBufferSize)
 		return STATUS_INSUFFICIENT_RESOURCES;
 
-	RtlCopyMemory(edx->IoBuffer, pp->Header, Size);
+	RtlCopyMemory(edx->IoBuffer, pp->HeaderArray(), Size);
 
 #if DBG
 	KdPrint(("Formatting %u sectors, size=%u, gap=%u\n", pp->sectors, pp->size, pp->gap));
@@ -2088,22 +2088,23 @@ NTSTATUS TimedScanTrack (PEXTRA_DEVICE_EXTENSION edx, PIRP Irp)
 
 				// Find the sector in the list we previously scanned, as sectors close to the index
 				// hole aren't always visible on the 2nd pass!!
-				for (u = 0 ; po->Header[u].sector != edx->FifoOut[5] && u < Count ; u++) ;
+				for (u = 0 ; po->HeaderArray(u).sector != edx->FifoOut[5] && u < Count ; u++) ;
 				if (u != Count) // Else do not adjust SpinTime based on nothing.
 				{
-					edx->SpinTime = ulDiff - po->Header[u].reltime;
+					edx->SpinTime = ulDiff - po->HeaderArray(u).reltime;
 					KdPrint(("### Track loop found @%u, new SpinTime = %luus\n", u, edx->SpinTime));
 				}
 				break;
 			}
 		}
 
-		po->Header[Count].cyl = edx->FifoOut[3];
-		po->Header[Count].head = edx->FifoOut[4];
-		po->Header[Count].sector = edx->FifoOut[5];
-		po->Header[Count].size = edx->FifoOut[6];
-		po->Header[Count].reltime = ulDiff;
-		KdPrint(("reltime[%u] = %lu\n", Count, po->Header[Count].reltime));
+		auto& HeaderAtCount = po->HeaderArray(Count);
+		HeaderAtCount.cyl = edx->FifoOut[3];
+		HeaderAtCount.head = edx->FifoOut[4];
+		HeaderAtCount.sector = edx->FifoOut[5];
+		HeaderAtCount.size = edx->FifoOut[6];
+		HeaderAtCount.reltime = ulDiff;
+		KdPrint(("reltime[%u] = %lu\n", Count, HeaderAtCount.reltime));
 
 		if (++Count == 0xff)
 			status = STATUS_BUFFER_TOO_SMALL;
@@ -2119,18 +2120,18 @@ NTSTATUS TimedScanTrack (PEXTRA_DEVICE_EXTENSION edx, PIRP Irp)
 
 	// Normalise the offsets of wrapped sectors
 	for (UCHAR k = 0 ; k < Count ; k++)
-		if (po->Header[k].reltime >= edx->SpinTime)
-			po->Header[k].reltime %= edx->SpinTime;
+		if (po->HeaderArray(k).reltime >= edx->SpinTime)
+			po->HeaderArray(k).reltime %= edx->SpinTime;
 
 	for (UCHAR i = 0, b ; i < Count ; i++)
 	{
 		for (UCHAR j = b = i ; j < Count ; j++)
-			if (po->Header[j].reltime < po->Header[b].reltime)
+			if (po->HeaderArray(j).reltime < po->HeaderArray(b).reltime)
 				b = j;
 
-		FD_TIMED_ID_HEADER h = po->Header[i];
-		po->Header[i] = po->Header[b];
-		po->Header[b] = h;
+		FD_TIMED_ID_HEADER h = po->HeaderArray(i);
+		po->HeaderArray(i) = po->HeaderArray(b);
+		po->HeaderArray(b) = h;
 
 		// Remember the offset of the first sector seen
 		if (!i) po->firstseen = b;

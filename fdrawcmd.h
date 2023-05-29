@@ -155,7 +155,15 @@ typedef struct tagFD_FORMAT_PARAMS
     BYTE phead;
     BYTE size, sectors, gap, fill;
 
-    FD_ID_HEADER Header[];
+    // Empty array definition is replaced with HeaderArray methods.
+    inline FD_ID_HEADER* HeaderArray()
+    {
+        return reinterpret_cast<FD_ID_HEADER*>(&this[1]);
+    }
+    inline FD_ID_HEADER& HeaderArray(const int index)
+    {
+        return HeaderArray()[index];
+    }
 }
 FD_FORMAT_PARAMS, *PFD_FORMAT_PARAMS;
 
@@ -252,10 +260,17 @@ FD_SCAN_PARAMS, *PFD_SCAN_PARAMS;
 typedef struct tagFD_SCAN_RESULT
 {
     BYTE count;                         // count of returned headers
-    FD_ID_HEADER Header[];              // array of 'count' id fields
+    // array of 'count' id fields. Empty array definition is replaced with HeaderArray methods.
+    inline FD_ID_HEADER* HeaderArray()
+    {
+        return reinterpret_cast<FD_ID_HEADER*>(&this[1]);
+    }
+    inline FD_ID_HEADER& HeaderArray(const int index)
+    {
+        return HeaderArray()[index];
+    }
 }
 FD_SCAN_RESULT, *PFD_SCAN_RESULT;
-
 
 typedef struct tagFD_TIMED_ID_HEADER
 {
@@ -269,7 +284,15 @@ typedef struct tagFD_TIMED_SCAN_RESULT
     BYTE count;                         // count of returned headers
     BYTE firstseen;                     // offset of first sector detected
     DWORD tracktime;                    // total time for track (in microseconds)
-    FD_TIMED_ID_HEADER Header[];        // array of 'count' id fields
+    // array of 'count' id fields. Empty array definition is replaced with HeaderArray methods.
+    inline FD_TIMED_ID_HEADER* HeaderArray()
+    {
+        return reinterpret_cast<FD_TIMED_ID_HEADER*>(&this[1]);
+    }
+    inline FD_TIMED_ID_HEADER& HeaderArray(const int index)
+    {
+        return HeaderArray()[index];
+    }
 }
 FD_TIMED_SCAN_RESULT, *PFD_TIMED_SCAN_RESULT;
 
