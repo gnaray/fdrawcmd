@@ -1046,6 +1046,8 @@ VOID FlAllocateIoBuffer (IN OUT PEXTRA_DEVICE_EXTENSION edx, IN ULONG BufferSize
 	{
 		 KdPrint((DRIVERNAME " - MmProbeAndLockPages failed. Status = %X\n", GetExceptionCode()));
 
+		 IoFreeMdl(edx->IoBufferMdl);
+		 edx->IoBufferMdl = NULL;
 		 ExFreePool(edx->IoBuffer);
 		 edx->IoBuffer = NULL;
 		 return;
