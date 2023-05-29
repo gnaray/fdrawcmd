@@ -8,7 +8,9 @@
 #define FDRAWCMD_H
 
 #ifndef CTL_CODE
-#include <winioctl.h>
+#ifdef _WIN32
+#include <winioctl.h> // Requires preincluded windows.h.
+#endif
 #endif
 
 #define FDRAWCMD_VERSION                0x0100010b      // Compile-time version, for structures and definitions below
