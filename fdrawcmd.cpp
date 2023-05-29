@@ -92,6 +92,7 @@ PUCHAR FDC_DSR_PORT  = (PUCHAR)0x03f7;	// Data Rate Select Register
 #define STREG3_WRITE_PROTECTED			   0x40
 #define STREG3_DRIVE_FAULT				   0x80
 
+constexpr int IO_BUFFER_SIZE = 0x8000;	// 32K
 extern "C"
 {
 // This header is part of an old Windows DDK and contains the structures and
@@ -2288,7 +2289,7 @@ VOID ThreadProc (PVOID StartContext)
 		// Allocate the buffer if not already allocated
 		if (!edx->IoBuffer)
 		{
-			FlAllocateIoBuffer(edx, 0x8000);	// 32K
+			FlAllocateIoBuffer(edx, IO_BUFFER_SIZE);
 
 			// Fail the request if we couldn't
 			if (!edx->IoBuffer)
