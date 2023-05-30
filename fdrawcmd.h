@@ -1,4 +1,4 @@
-// fdrawcmd.sys 1.0.1.11
+// fdrawcmd.sys 1.0.1.12
 //
 // Low-level floppy filter, by Simon Owen
 //
@@ -13,10 +13,11 @@
 #endif
 #endif
 
-#define FDRAWCMD_VERSION                0x0100010b      // Compile-time version, for structures and definitions below
+#define FDRAWCMD_VERSION                0x0100010c      // Compile-time version, for structures and definitions below
                                                         // Must be checked with run-time driver for compatibility
 
 #define FD_CTL_CODE(i,m)                CTL_CODE(FILE_DEVICE_UNKNOWN, i, m, FILE_READ_DATA|FILE_WRITE_DATA)
+//Helper for calculating FD_CTL_CODEs: FD_CTL_CODE(code, method) = 0x22C000 | code << 2 | method
 
                                                                                 // If you're not using C/C++, use the IOCTL values below
 #define IOCTL_FDRAWCMD_GET_VERSION      FD_CTL_CODE(0x888, METHOD_BUFFERED)     // 0x0022e220
