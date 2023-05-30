@@ -35,6 +35,9 @@
     <ClInclude Include="version.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ntddfdc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="MultiScan.h">
       <Filter>Header Files</Filter>
     </ClInclude>
