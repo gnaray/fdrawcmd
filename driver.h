@@ -50,6 +50,8 @@ typedef struct _EXTRA_DEVICE_EXTENSION: public _COMMON_DEVICE_EXTENSION
 	PUCHAR IoBuffer;
 	PMDL IoBufferMdl;
 	ULONG IoBufferSize;
+	PUCHAR WorkMemory;
+	ULONG WorkMemorySize;
 
 	UCHAR FifoIn[16];
 	UCHAR FifoOut[16];

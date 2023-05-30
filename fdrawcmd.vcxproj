@@ -115,10 +115,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fdrawcmd.cpp" />
+    <ClCompile Include="MultiScan.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="driver.h" />
     <ClInclude Include="fdrawcmd.h" />
+    <ClInclude Include="fdrawcmd_friend.h" />
+    <ClInclude Include="MultiScan.h" />
+    <ClInclude Include="ntddfdc.h" />
+    <ClInclude Include="Platform.h" />
+    <ClInclude Include="QuickSort.h" />
+    <ClInclude Include="Sorters.h" />
     <ClInclude Include="stddcls.h" />
     <ClInclude Include="version.h" />
   </ItemGroup>

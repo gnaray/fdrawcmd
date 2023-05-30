@@ -72,6 +72,8 @@
 #define IOCTL_FD_CHECK_DISK             FD_CTL_CODE(0x917, METHOD_BUFFERED)     // 0x0022e45c   // added in 1.0.1.10
 #define IOCTL_FD_GET_TRACK_TIME         FD_CTL_CODE(0x918, METHOD_BUFFERED)     // 0x0022e460   // added in 1.0.1.10
 
+#define IOCTL_FD_TIMED_MULTI_SCAN_TRACK FD_CTL_CODE(0x91a, METHOD_BUFFERED)     // 0x0022e468   // added in 1.0.1.12
+
 ///////////////////////////////////////////////////////////////////////////////
 
 // Command flags: multi-track, MFM, sector skip, relative seek direction, verify enable count
@@ -297,6 +299,41 @@ typedef struct tagFD_TIMED_SCAN_RESULT
     }
 }
 FD_TIMED_SCAN_RESULT, *PFD_TIMED_SCAN_RESULT;
+
+typedef struct tagFD_MULTI_SCAN_PARAMS
+{
+    BYTE flags;                         // MFM
+    BYTE head;
+    char track_retries;
+    char byte_tolerance_of_time;
+}
+FD_MULTI_SCAN_PARAMS, *PFD_MULTI_SCAN_PARAMS;
+
+typedef struct tagFD_TIMED_MULTI_ID_HEADER
+{
+    DWORD reltime;                      // time relative to index (in microseconds)
+    BYTE revolution;
+    BYTE cyl, head, sector, size;
+}
+FD_TIMED_MULTI_ID_HEADER, *PFD_TIMED_MULTI_ID_HEADER;
+
+typedef struct tagFD_TIMED_MULTI_SCAN_RESULT
+{
+    DWORD tracktime;                    // total time for track (in microseconds)
+    BYTE track_retries;                   // the number of track_retries scanned
+    BYTE byte_tolerance_of_time;
+    WORD count;                         // count of returned headers
+    // array of 'count' id fields. Empty array definition is replaced with HeaderArray methods.
+    inline FD_TIMED_MULTI_ID_HEADER* HeaderArray()
+    {
+        return reinterpret_cast<FD_TIMED_MULTI_ID_HEADER*>(&this[1]);
+    }
+    inline FD_TIMED_MULTI_ID_HEADER& HeaderArray(const int index)
+    {
+        return HeaderArray()[index];
+    }
+}
+FD_TIMED_MULTI_SCAN_RESULT, *PFD_TIMED_MULTI_SCAN_RESULT;
 
 typedef struct tagFD_FDC_INFO
 {

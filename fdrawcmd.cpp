@@ -4,6 +4,7 @@
 #include "driver.h"
 #include "fdrawcmd.h"
 #include "version.h"
+#include "MultiScan.h"
 
 #pragma LOCKEDCODE
 #pragma LOCKEDDATA
@@ -93,6 +94,7 @@ PUCHAR FDC_DSR_PORT  = (PUCHAR)0x03f7;	// Data Rate Select Register
 #define STREG3_DRIVE_FAULT				   0x80
 
 constexpr int IO_BUFFER_SIZE = 0x8000;	// 32K
+constexpr int WORK_MEMORY_SIZE = 0x8000; // 32K
 int KdCounter = 0;
 
 extern "C"
@@ -1061,6 +1063,38 @@ VOID FlAllocateIoBuffer (IN OUT PEXTRA_DEVICE_EXTENSION edx, IN ULONG BufferSize
 
 ///////////////////////////////////////////////////////////////////////////////
 
+VOID FlFreeWorkMemory(IN OUT PEXTRA_DEVICE_EXTENSION edx)
+{
+	if (!edx->WorkMemory)
+		return;
+
+	edx->WorkMemorySize = 0;
+
+	ExFreePool(edx->WorkMemory);
+	edx->WorkMemory = NULL;
+}
+
+VOID FlAllocateWorkMemory(IN OUT PEXTRA_DEVICE_EXTENSION edx, IN ULONG MemorySize)
+{
+	if (edx->WorkMemory)
+	{
+		if (edx->WorkMemorySize >= MemorySize)
+			return;
+
+		FlFreeWorkMemory(edx);
+	}
+
+	edx->WorkMemory = (PUCHAR)ExAllocatePoolWithTag(NonPagedPoolCacheAligned, MemorySize, POOL_TAG);
+
+	if (!edx->WorkMemory)
+		return;
+
+	edx->WorkMemorySize = MemorySize;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+
 NTSTATUS CheckBuffers (PIRP Irp, ULONG uInput_, ULONG uOutput_, bool fOutOptional_=false)
 {
 	PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
@@ -1529,7 +1563,9 @@ NTSTATUS CommandReadWrite (PEXTRA_DEVICE_EXTENSION edx, PMDL Mdl, ULONG MdlSize,
 		status = CheckFdcResult(edx);
 
 	if (!NT_SUCCESS(status))
+	{
 		KdPrint(("!!! CommandReadWrite failed with %X [ST0:%02X ST1:%02X ST2:%02X]\n", status, edx->FifoOut[0], edx->FifoOut[1], edx->FifoOut[2]));
+	}
 
 	return status;
 }
@@ -1911,7 +1947,7 @@ NTSTATUS FormatAndWrite (PEXTRA_DEVICE_EXTENSION edx, PIRP Irp, ULONG DataSize)
  * Measuring Revolutions > 1 amount is rather for experiencing because SpinTime
  * is used in (Multi) Timed Scan where it is adjusted further.
  */
-NTSTATUS WaitIndex (PEXTRA_DEVICE_EXTENSION edx, bool CalcSpinTime=false, int Revolutions=1)
+NTSTATUS WaitIndex (PEXTRA_DEVICE_EXTENSION edx, bool CalcSpinTime/*=false*/, int Revolutions/*=1*/)
 {
 	// Using READ_TRACK can also give the start of track position, by over-reading until End of Cylinder is returned.
 	// It gives a tighter index sync than reading an error sector, but relies on the command not failing earlier due
@@ -2326,6 +2362,18 @@ VOID ThreadProc (PVOID StartContext)
 
 			// Fail the request if we couldn't
 			if (!edx->IoBuffer)
+			{
+				CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES);
+				continue;
+			}
+		}
+		// Allocate the memory if not already allocated
+		if (!edx->WorkMemory)
+		{
+			FlAllocateWorkMemory(edx, WORK_MEMORY_SIZE);
+
+			// Fail the request if we couldn't
+			if (!edx->WorkMemory)
 			{
 				CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES);
 				continue;
@@ -3167,6 +3215,42 @@ VOID ThreadProc (PVOID StartContext)
 				break;
 			}
 
+			case IOCTL_FD_TIMED_MULTI_SCAN_TRACK:
+			{
+				PFD_MULTI_SCAN_PARAMS pp = (PFD_MULTI_SCAN_PARAMS)Irp->AssociatedIrp.SystemBuffer;
+				ULONG OutSize = IoGetCurrentIrpStackLocation(Irp)->Parameters.DeviceIoControl.OutputBufferLength;
+
+				status = CheckBuffers(Irp, sizeof(FD_MULTI_SCAN_PARAMS), sizeof(FD_TIMED_MULTI_SCAN_RESULT));
+				if (NT_SUCCESS(status))
+				{
+					if (pp->head > 1 || pp->track_retries == 0)
+						status = STATUS_INVALID_PARAMETER;
+				}
+
+				if (NT_SUCCESS(status))
+				{
+					const int OutHeaderIndexSup = (OutSize - sizeof(FD_TIMED_MULTI_SCAN_RESULT)) / sizeof(FD_TIMED_MULTI_ID_HEADER_EXT);
+					status = TimedMultiScanTrack(edx, pp, OutHeaderIndexSup);
+				}
+
+				if (NT_SUCCESS(status))
+				{
+					PFD_TIMED_MULTI_SCAN_RESULT pd = (PFD_TIMED_MULTI_SCAN_RESULT)edx->IoBuffer;
+					ULONG DataSize = sizeof(FD_TIMED_MULTI_SCAN_RESULT) + sizeof(FD_TIMED_MULTI_ID_HEADER_EXT)*pd->count;
+					KdPrint(("OutSize=%lu, DataSize=%lu\n", OutSize, DataSize));
+
+					if (DataSize > OutSize)
+						status = STATUS_BUFFER_TOO_SMALL;
+					else
+					{
+						RtlCopyMemory(Irp->AssociatedIrp.SystemBuffer, edx->IoBuffer, DataSize);
+						Irp->IoStatus.Information = DataSize;
+					}
+				}
+
+				break;
+			}
+
 			case IOCTL_FD_RAW_READ_TRACK:
 			{
 				KdPrint(("In IOCTL_FD_RAW_READ_TRACK(2)\n"));
@@ -3320,8 +3404,10 @@ VOID ThreadProc (PVOID StartContext)
 		edx->Acquired = FALSE;
 	}
 
+	FlFreeWorkMemory(edx);
 	FlFreeIoBuffer(edx);
 
 	KdPrint((DRIVERNAME " - Leaving ThreadProc()\n"));
 	PsTerminateSystemThread(STATUS_SUCCESS);
+
 }
