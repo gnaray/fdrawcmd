@@ -3382,6 +3382,24 @@ VOID ThreadProc (PVOID StartContext)
 				break;
 			}
 
+			case IOCTL_FD_GET_MULTI_TRACK_TIME:
+			{
+				PUCHAR pbRevolutions = (PUCHAR)Irp->AssociatedIrp.SystemBuffer;
+				status = CheckBuffers(Irp, sizeof(UCHAR), sizeof(FD_MULTI_TRACK_TIME_RESULT));
+
+				if (NT_SUCCESS(status))
+					status = WaitIndex(edx, true, *pbRevolutions);
+
+				if (NT_SUCCESS(status))
+				{
+					auto p = (PFD_MULTI_TRACK_TIME_RESULT)Irp->AssociatedIrp.SystemBuffer;
+					p->spintime = edx->SpinTime;
+				}
+
+				Irp->IoStatus.Information = sizeof(FD_MULTI_TRACK_TIME_RESULT);
+				break;
+			}
+
 			default:
 				KdPrint(("Failing unknown IOCTL\n"));
 				Irp->IoStatus.Information = 0;

@@ -72,6 +72,7 @@
 #define IOCTL_FD_CHECK_DISK             FD_CTL_CODE(0x917, METHOD_BUFFERED)     // 0x0022e45c   // added in 1.0.1.10
 #define IOCTL_FD_GET_TRACK_TIME         FD_CTL_CODE(0x918, METHOD_BUFFERED)     // 0x0022e460   // added in 1.0.1.10
 
+#define IOCTL_FD_GET_MULTI_TRACK_TIME   FD_CTL_CODE(0x919, METHOD_BUFFERED)     // 0x0022e464   // added in 1.0.1.12
 #define IOCTL_FD_TIMED_MULTI_SCAN_TRACK FD_CTL_CODE(0x91a, METHOD_BUFFERED)     // 0x0022e468   // added in 1.0.1.12
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -334,6 +335,12 @@ typedef struct tagFD_TIMED_MULTI_SCAN_RESULT
     }
 }
 FD_TIMED_MULTI_SCAN_RESULT, *PFD_TIMED_MULTI_SCAN_RESULT;
+
+typedef struct tagFD_MULTI_TRACK_TIME_RESULT
+{
+    DWORD spintime;
+}
+FD_MULTI_TRACK_TIME_RESULT, *PFD_MULTI_TRACK_TIME_RESULT;
 
 typedef struct tagFD_FDC_INFO
 {
