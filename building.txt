@@ -1,0 +1,22 @@
+20230529
+Switching off the "Treat warnings as errors" is not mandatory
+anymore because the while(constant) loops are replaced with
+for loops.
+
+---
+
+20230420
+Building the fdrawcmd.sys file is not trivial.
+
+It requires Windows 10 SDK, Windows 10 WDK, and the
+ntddfdc.h which comes from Windows DDK (for example
+Windows Server 2003 DDK (5.2.3790)) as a helper file (located at
+c:\WINDDK\3790.1830\src\storage\fdc\inc\ntddfdc.h).
+The SDK version must match the WDK version.
+See https://learn.microsoft.com/en-us/windows-hardware/drivers/other-wdk-downloads
+The SDK version (e.g. 10.0.14393.795) is for targeted Windows 10, version 1607.
+The WDK version (10.0.14393.0) is selected accordingly on that webpage.
+
+For successful build the "Treat warnings as errors" must be switched off
+because there is 3 warnings about do while(constant) loop.
+Project/fdrawcmd Properties/C/C++/Treat Warnings As Errors: No (/WX-)
