@@ -2685,6 +2685,7 @@ VOID ThreadProc (PVOID StartContext)
 					p->BusNumber = fdci.BusNumber;
 					p->ControllerNumber = fdci.ControllerNumber;
 					p->PeripheralNumber = fdci.PeripheralNumber;
+					p->MaxTransferSize = edx->MaxTransferSize;
 				}
 
 				CompleteRequest(Irp, status, sizeof(FD_FDC_INFO));
