@@ -229,8 +229,14 @@ int MergeWorkHeadersWithUpRevsIntoOutHeaders(_In_ FD_TIMED_MULTI_ID_HEADER_WORK_
 * within the time tolerance of tracktime and the CHRNs are the same.
 * Def.: The [work header] is a temporary header containing information about
 * a detected sector during the scanning process.
-* Def.: The [work headers] is the array of work headers which is the shorter
-* name of found all headers array.
+* Def.: The [late-work-headers] is the array of work headers which is the
+* shorter name of found late headers array. Late header means that the header
+* is found after at least 1 revolution. It is also referred as first header
+* because it is first in a revolution, however not in the first revolution.
+* The first revolution can be incomplete because sectors close to the index
+* hole might not appear in it.
+* Def.: The [all-work-headers] is the array of work headers which is the
+* shorter name of found all headers array.
 *
 * If the track_retries specifies (-n) auto mode then scanning of track is
 * retried more (at least n) times while the headers array containing the CHRNs
@@ -243,20 +249,20 @@ int MergeWorkHeadersWithUpRevsIntoOutHeaders(_In_ FD_TIMED_MULTI_ID_HEADER_WORK_
 * waiting also when scanning a blank track.
 *
 * The algorithm consist of the following steps:
-* 1) Collecting CHRNs from floppy track into work headers as fast as
+* 1) Collecting CHRNs from floppy track into all-work-headers as fast as
 * possible. The scanning is performed track_retries times
 * (at most 255) or until the work buffer is full. The scanning is also limited
 * by the time calculated from spintime and time of first found CHRN plus the
 * spintime +-tolerance. Each scanning of track starts with WaitIndex thus
 * the time variance remains small enough. In case of auto track_retries new
-* CHRNs must be detected so an array of work headers of each different CHRNs
+* CHRNs must be detected so an array of late-work-headers of each different CHRNs
 * is maintained and the new CHRNs are searched in this array.
-* 2) Sorting the collected work headers by abstime and CHRNs.
-* 3) Sorting the collected work headers by abstime and CHRNs.
-* 4) Calculating tracktime by the first pair of work headers in CurrentTrackTime distance.
-* 5) Merge work headers into out headers and also convert abstime to reltime and revolution.
+* 2) Sorting the collected late-work-headers by abstime and CHRNs.
+* 3) Sorting the collected all-work-headers by abstime and CHRNs.
+* 4) Calculating tracktime by the first pair of all-work-headers in CurrentTrackTime distance.
+* 5) Merge all-work-headers into out headers and also convert abstime to reltime and revolution.
 * 6) Sorting the out headers by default (i.e. reltime, rev, CHRN).
-
+*
 * The returned tracktime is the edx->SpinTime. The edx->SpinTime is the
 * measured time of revolution (measured either before scanning a track if it
 * was not measured earlier or by calling IOCTL_FD_GET_TRACK_TIME earlier).
@@ -354,7 +360,7 @@ NTSTATUS TimedMultiScanTrack(_Inout_ const PEXTRA_DEVICE_EXTENSION edx, _In_ con
 	NTSTATUS status = STATUS_SUCCESS;
 
 	KdPrint(("#%d: TimedMultiScanTrack(): start method, OutHeaderIndexSup=%d\n", KdCounter++, OutHeaderIndexSup));
-	// 1) Reading IDAMs and storing them as work headers.
+	// 1) Reading IDAMs and storing them as all-work-headers, plus storing the late-work-headers.
 	while (NT_SUCCESS(status)) // Read track (next track_retries).
 	{
 		TrackRetries++;
@@ -450,11 +456,11 @@ NTSTATUS TimedMultiScanTrack(_Inout_ const PEXTRA_DEVICE_EXTENSION edx, _In_ con
 
 	for (;;)
 	{
-		// 2) Sorting the collected work headers by abstime and CHRNs.
+		// 2) Sorting the collected late-work-headers by abstime and CHRNs.
 		InsertionSort((PFD_TIMED_MULTI_ID_HEADER_WORK_AS_ABSTIME_CHRN)FoundFirstHeaders, FoundFirstHeadersCount);
-		// 3) Sorting the collected work headers by abstime and CHRNs.
+		// 3) Sorting the collected all-work-headers by abstime and CHRNs.
 		InsertionSort((PFD_TIMED_MULTI_ID_HEADER_WORK_AS_ABSTIME_CHRN)FoundAllHeaders, FoundAllHeadersCount);
-		// 4) Calculating tracktime by the first pair of work headers in CurrentTrackTime distance.
+		// 4) Calculating tracktime by the first pair of all-work-headers in CurrentTrackTime distance.
 //		KdPrint(("#%d: TimedMultiScanTrack(): DetermineTracktimeByMergingFirstHeaders, Tracktime=%ld\n", KdCounter++, CurrentTracktime));
 		const auto AdjustedTracktime = DetermineTracktimeByMergingFirstHeaders((PFD_TIMED_MULTI_ID_HEADER_WORK_AS_ABSTIME_CHRN)FoundAllHeaders, FoundAllHeadersCount,
 			(PFD_TIMED_MULTI_ID_HEADER_WORK_AS_ABSTIME_CHRN)FoundFirstHeaders, FoundFirstHeadersCount, CurrentTracktime, TimeToleranceOfTime);
@@ -464,7 +470,7 @@ NTSTATUS TimedMultiScanTrack(_Inout_ const PEXTRA_DEVICE_EXTENSION edx, _In_ con
 			CurrentTracktime = AdjustedTracktime;
 			edx->SpinTime = CurrentTracktime;
 		}
-		// 5) Merge work headers into out headers and also convert abstime to reltime and revolution.
+		// 5) Merge all-work-headers into out headers and also convert abstime to reltime and revolution.
 		const auto OutHeaders = (PFD_TIMED_MULTI_ID_HEADER_EXT)pOut->HeaderArray();
 		FoundAllHeadersCount = MergeWorkHeadersWithUpRevsIntoOutHeaders((PFD_TIMED_MULTI_ID_HEADER_WORK_AS_ABSTIME_CHRN)FoundAllHeaders, FoundAllHeadersCount,
 			OutHeaders, OutHeaderIndexSup, CurrentTracktime, TimeToleranceOfTime);
