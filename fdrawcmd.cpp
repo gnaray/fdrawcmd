@@ -3388,6 +3388,9 @@ VOID ThreadProc (PVOID StartContext)
 				PUCHAR pbRevolutions = (PUCHAR)Irp->AssociatedIrp.SystemBuffer;
 				status = CheckBuffers(Irp, sizeof(UCHAR), sizeof(FD_MULTI_TRACK_TIME_RESULT));
 
+				if (*pbRevolutions == 0)
+					status = STATUS_INVALID_PARAMETER;
+
 				if (NT_SUCCESS(status))
 					status = WaitIndex(edx, true, *pbRevolutions);
 
