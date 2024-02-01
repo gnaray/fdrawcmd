@@ -319,18 +319,21 @@ int MergeWorkHeadersWithUpRevsIntoOutHeaders(_In_ FD_TIMED_MULTI_ID_HEADER_WORK_
 * sectors. With appropriate merging it never fills up the WorkBuffer because
 * it takes 18 * 9 = 162 bytes only.
 *
-* Output: po (PFD_TIMED_MULTI_SCAN_RESULT)
-* - tracktime
-* - track_retries
-* - byte_tolerance_of_time
-* - count
-* - HeaderArray (FD_TIMED_MULTI_ID_HEADER):
-*   - reltime
-*   - revolution
-*   - cyl
-*   - head
-*   - sector
-*   - size
+* Output:
+* - edx
+*   - SpinTime
+* - pOut (PFD_TIMED_MULTI_SCAN_RESULT)
+*   - tracktime
+*   - track_retries
+*   - byte_tolerance_of_time
+*   - count
+*   - HeaderArray (FD_TIMED_MULTI_ID_HEADER):
+*     - reltime
+*     - revolution
+*     - cyl
+*     - head
+*     - sector
+*     - size
 */
 NTSTATUS TimedMultiScanTrack(_Inout_ const PEXTRA_DEVICE_EXTENSION edx, _In_ const PFD_MULTI_SCAN_PARAMS pp, _In_ const int OutHeaderIndexSup)
 {
