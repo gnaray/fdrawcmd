@@ -3224,7 +3224,7 @@ VOID ThreadProc (PVOID StartContext)
 				status = CheckBuffers(Irp, sizeof(FD_MULTI_SCAN_PARAMS), sizeof(FD_TIMED_MULTI_SCAN_RESULT));
 				if (NT_SUCCESS(status))
 				{
-					if (pp->head > 1 || pp->track_retries == 0)
+					if (pp->head > 1)
 						status = STATUS_INVALID_PARAMETER;
 				}
 

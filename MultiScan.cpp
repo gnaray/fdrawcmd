@@ -337,8 +337,6 @@ int MergeWorkHeadersWithUpRevsIntoOutHeaders(_In_ FD_TIMED_MULTI_ID_HEADER_WORK_
 */
 NTSTATUS TimedMultiScanTrack(_Inout_ const PEXTRA_DEVICE_EXTENSION edx, _In_ const PFD_MULTI_SCAN_PARAMS pp, _In_ const int OutHeaderIndexSup)
 {
-	if (pp->track_retries == 0)
-		return STATUS_INVALID_PARAMETER;
 	const bool IsAutoTrackRetries = pp->track_retries < 0;
 	int TrackRetriesRequested = IsAutoTrackRetries ? -pp->track_retries : pp->track_retries;
 	// The algorithm here calculates with +-half tolerance so dividing specified byte_tolerance_of_time by 2.
@@ -448,10 +446,10 @@ NTSTATUS TimedMultiScanTrack(_Inout_ const PEXTRA_DEVICE_EXTENSION edx, _In_ con
 		if (FoundAllHeadersCount >= FoundAllHeadersIndexSup)
 			break; // Finish reading of IDAMs, Headers buffer is full.
 		if (IsAutoTrackRetries && FoundNewHeader)
-			TrackRetriesRequested = -pp->track_retries + 1;
+			TrackRetriesRequested = -pp->track_retries;
 //		KdPrint(("#%d: TimedMultiScanTrack(): finished Rev (%d), IsAutoTrackRetries=%hhu, TrackRetriesRequested=%d, FoundAllHeadersCount=%d\n",
 //			KdCounter++, TrackRetries, IsAutoTrackRetries, TrackRetriesRequested, FoundAllHeadersCount));
-		if (--TrackRetriesRequested == 0 || TrackRetries == 255)
+		if (TrackRetriesRequested-- == 0 || TrackRetries == 255)
 			break;
 	}
 	KdPrint(("#%d: TimedMultiScanTrack(): finished all scannings, TrackRetries=%d, FoundAllHeadersCount=%d\n", KdCounter++, TrackRetries, FoundAllHeadersCount));
