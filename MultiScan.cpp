@@ -463,6 +463,10 @@ NTSTATUS TimedMultiScanTrack(_Inout_ const PEXTRA_DEVICE_EXTENSION edx, _In_ con
 		InsertionSort((PFD_TIMED_MULTI_ID_HEADER_WORK_AS_ABSTIME_CHRN)FoundAllHeaders, FoundAllHeadersCount);
 		// 4) Calculating tracktime by the first pair of all-work-headers in CurrentTrackTime distance.
 //		KdPrint(("#%d: TimedMultiScanTrack(): DetermineTracktimeByMergingFirstHeaders, Tracktime=%ld\n", KdCounter++, CurrentTracktime));
+// Commenting adjusted track time calculator because it is calculated from
+// offset time difference and measuring the offset time is unstable.
+// In addition the track time measuring in WaitIndex is quite stable.
+/*
 		const auto AdjustedTracktime = DetermineTracktimeByMergingFirstHeaders((PFD_TIMED_MULTI_ID_HEADER_WORK_AS_ABSTIME_CHRN)FoundAllHeaders, FoundAllHeadersCount,
 			(PFD_TIMED_MULTI_ID_HEADER_WORK_AS_ABSTIME_CHRN)FoundFirstHeaders, FoundFirstHeadersCount, CurrentTracktime, TimeToleranceOfTime);
 //		KdPrint(("#%d: TimedMultiScanTrack(): DetermineTracktimeByMergingFirstHeaders.end, AdjustedTracktime=%ld\n", KdCounter++, AdjustedTracktime));
@@ -471,6 +475,7 @@ NTSTATUS TimedMultiScanTrack(_Inout_ const PEXTRA_DEVICE_EXTENSION edx, _In_ con
 			CurrentTracktime = AdjustedTracktime;
 			edx->SpinTime = CurrentTracktime;
 		}
+*/
 		// 5) Merge all-work-headers into out headers and also convert abstime to reltime and revolution.
 		const auto OutHeaders = (PFD_TIMED_MULTI_ID_HEADER_EXT)pOut->HeaderArray();
 		FoundAllHeadersCount = MergeWorkHeadersWithUpRevsIntoOutHeaders((PFD_TIMED_MULTI_ID_HEADER_WORK_AS_ABSTIME_CHRN)FoundAllHeaders, FoundAllHeadersCount,
